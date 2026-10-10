@@ -1,4 +1,3 @@
-
 package app.vehicleservice.config;
 
 import app.vehicleservice.security.CustomUserDetailsService;
@@ -75,10 +74,11 @@ public class SecurityConfig {
 
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Allow local development and the deployed Vercel frontend.
-        configuration.setAllowedOrigins(List.of(
+        // Allow local development, production, and Vercel preview deployments.
+        configuration.setAllowedOriginPatterns(List.of(
                 "http://localhost:5173",
-                "https://vehicle-service-frontend-fawn.vercel.app"
+                "https://vehicle-service-frontend-fawn.vercel.app",
+                "https://vehicle-service-frontend-*.vercel.app"
         ));
 
         configuration.setAllowedMethods(List.of(
@@ -128,7 +128,6 @@ public class SecurityConfig {
             )
 
             .authorizeHttpRequests(auth -> auth
-
                 .requestMatchers(
                     "/",
                     "/error",
