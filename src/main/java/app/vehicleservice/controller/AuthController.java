@@ -3,6 +3,7 @@ package app.vehicleservice.controller;
 import app.vehicleservice.dto.LoginRequest;
 import app.vehicleservice.dto.LoginResponse;
 import app.vehicleservice.dto.RegisterRequest;
+import app.vehicleservice.model.Role;
 import app.vehicleservice.model.User;
 import app.vehicleservice.security.JwtService;
 import app.vehicleservice.service.UserService;
@@ -51,12 +52,10 @@ public class AuthController {
 
         user.setName(request.getName());
         user.setEmail(request.getEmail());
-
         user.setPassword(
                 passwordEncoder.encode(request.getPassword())
         );
-
-        user.setRole(app.vehicleservice.model.Role.CUSTOMER);
+        user.setRole(Role.CUSTOMER);
 
         User savedUser = userService.saveUser(user);
 
@@ -89,20 +88,5 @@ public class AuthController {
         );
 
         return ResponseEntity.ok(response);
-    }
-
-    // TEMPORARY: Reset forgotten ADMIN password
-    @PostMapping("/reset-admin-password")
-    public ResponseEntity<String> resetAdminPassword(
-            @RequestParam String newPassword) {
-
-        userService.resetPassword(
-                "admin@vehicleservice.com",
-                newPassword
-        );
-
-        return ResponseEntity.ok(
-                "Admin password reset successfully"
-        );
     }
 }
