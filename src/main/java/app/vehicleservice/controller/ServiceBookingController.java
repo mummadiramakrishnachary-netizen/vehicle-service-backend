@@ -1,6 +1,7 @@
 package app.vehicleservice.controller;
 
 import app.vehicleservice.dto.ServiceBookingRequest;
+import app.vehicleservice.dto.ServiceBookingResponse;
 import app.vehicleservice.dto.ServiceBookingUpdateRequest;
 import app.vehicleservice.model.ServiceBooking;
 import app.vehicleservice.model.ServiceUpdateHistory;
@@ -9,11 +10,11 @@ import app.vehicleservice.service.ServiceBookingService;
 import app.vehicleservice.service.UserService;
 
 import jakarta.validation.Valid;
-
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -35,73 +36,79 @@ public class ServiceBookingController {
     // CUSTOMER: CREATE BOOKING
     @PostMapping
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<ServiceBooking> createBooking(
+    @Transactional
+    public ResponseEntity<ServiceBookingResponse> createBooking(
             @Valid @RequestBody ServiceBookingRequest request,
             Authentication authentication) {
 
-        User customer = userService.getUserByEmail(
-                authentication.getName()
-        );
+        User customer = userService.getUserByEmail(authentication.getName());
 
-        ServiceBooking booking = serviceBookingService.createBooking(
-                request, customer
-        );
+        ServiceBooking booking =
+                serviceBookingService.createBooking(request, customer);
 
-        return ResponseEntity.status(HttpStatus.CREATED).body(booking);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(ServiceBookingResponse.from(booking));
     }
 
     // CUSTOMER: GET OWN BOOKINGS
     @GetMapping
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<List<ServiceBooking>> getMyBookings(
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<ServiceBookingResponse>> getMyBookings(
             Authentication authentication) {
 
-        User customer = userService.getUserByEmail(
-                authentication.getName()
-        );
+        User customer = userService.getUserByEmail(authentication.getName());
 
-        return ResponseEntity.ok(
+        List<ServiceBookingResponse> bookings =
                 serviceBookingService.getCustomerBookings(customer)
-        );
+                        .stream()
+                        .map(ServiceBookingResponse::from)
+                        .toList();
+
+        return ResponseEntity.ok(bookings);
     }
 
     // ADMIN / SERVICE ADVISOR: GET ALL BOOKINGS
     @GetMapping("/all")
     @PreAuthorize("hasAnyRole('ADMIN', 'SERVICE_ADVISOR')")
-    public ResponseEntity<List<ServiceBooking>> getAllBookings() {
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<ServiceBookingResponse>> getAllBookings() {
 
-        return ResponseEntity.ok(
+        List<ServiceBookingResponse> bookings =
                 serviceBookingService.getAllBookings()
-        );
+                        .stream()
+                        .map(ServiceBookingResponse::from)
+                        .toList();
+
+        return ResponseEntity.ok(bookings);
     }
 
     // ADMIN / SERVICE ADVISOR: GET BOOKING BY ID
     @GetMapping("/admin/{id}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SERVICE_ADVISOR')")
-    public ResponseEntity<ServiceBooking> getBookingById(
+    @Transactional(readOnly = true)
+    public ResponseEntity<ServiceBookingResponse> getBookingById(
             @PathVariable Long id) {
 
-        return ResponseEntity.ok(
-                serviceBookingService.getBookingById(id)
-        );
+        ServiceBooking booking = serviceBookingService.getBookingById(id);
+
+        return ResponseEntity.ok(ServiceBookingResponse.from(booking));
     }
 
     // CUSTOMER: GET BOOKING PROGRESS
     @GetMapping("/{id}/progress")
     @PreAuthorize("hasRole('CUSTOMER')")
-    public ResponseEntity<ServiceBooking> getBookingProgress(
+    @Transactional(readOnly = true)
+    public ResponseEntity<ServiceBookingResponse> getBookingProgress(
             @PathVariable Long id,
             Authentication authentication) {
 
-        User customer = userService.getUserByEmail(
-                authentication.getName()
-        );
+        User customer = userService.getUserByEmail(authentication.getName());
 
-        return ResponseEntity.ok(
-                serviceBookingService.getCustomerBookingProgress(
-                        id, customer
-                )
-        );
+        ServiceBooking booking =
+                serviceBookingService.getCustomerBookingProgress(id, customer);
+
+        return ResponseEntity.ok(ServiceBookingResponse.from(booking));
     }
 
     // CUSTOMER: GET SERVICE HISTORY
@@ -111,50 +118,50 @@ public class ServiceBookingController {
             @PathVariable Long id,
             Authentication authentication) {
 
-        User customer = userService.getUserByEmail(
-                authentication.getName()
-        );
+        User customer = userService.getUserByEmail(authentication.getName());
 
         return ResponseEntity.ok(
-                serviceBookingService.getCustomerBookingHistory(
-                        id, customer
-                )
+                serviceBookingService.getCustomerBookingHistory(id, customer)
         );
     }
 
     // MECHANIC: GET ASSIGNED BOOKINGS
     @GetMapping("/mechanic")
     @PreAuthorize("hasRole('MECHANIC')")
-    public ResponseEntity<List<ServiceBooking>> getMechanicBookings(
+    @Transactional(readOnly = true)
+    public ResponseEntity<List<ServiceBookingResponse>> getMechanicBookings(
             Authentication authentication) {
 
-        return ResponseEntity.ok(
-                serviceBookingService.getMechanicBookings(
-                        authentication.getName()
-                )
-        );
+        List<ServiceBookingResponse> bookings =
+                serviceBookingService.getMechanicBookings(authentication.getName())
+                        .stream()
+                        .map(ServiceBookingResponse::from)
+                        .toList();
+
+        return ResponseEntity.ok(bookings);
     }
 
     // ADMIN / SERVICE ADVISOR: ASSIGN MECHANIC
     @PutMapping("/{id}/assign-mechanic/{mechanicId}")
     @PreAuthorize("hasAnyRole('ADMIN', 'SERVICE_ADVISOR')")
-    public ResponseEntity<ServiceBooking> assignMechanic(
+    @Transactional
+    public ResponseEntity<ServiceBookingResponse> assignMechanic(
             @PathVariable Long id,
             @PathVariable Long mechanicId,
             Authentication authentication) {
 
-        ServiceBooking updatedBooking =
-                serviceBookingService.assignMechanic(
-                        id, mechanicId, authentication.getName()
-                );
+        ServiceBooking booking = serviceBookingService.assignMechanic(
+                id, mechanicId, authentication.getName()
+        );
 
-        return ResponseEntity.ok(updatedBooking);
+        return ResponseEntity.ok(ServiceBookingResponse.from(booking));
     }
 
     // ADMIN / SERVICE ADVISOR / MECHANIC: UPDATE BOOKING
     @PutMapping("/{id}/update")
     @PreAuthorize("hasAnyRole('ADMIN', 'SERVICE_ADVISOR', 'MECHANIC')")
-    public ResponseEntity<ServiceBooking> updateBooking(
+    @Transactional
+    public ResponseEntity<ServiceBookingResponse> updateBooking(
             @PathVariable Long id,
             @Valid @RequestBody ServiceBookingUpdateRequest request,
             Authentication authentication) {
@@ -168,18 +175,18 @@ public class ServiceBookingController {
                 .getAuthority()
                 .replace("ROLE_", "");
 
-        ServiceBooking updatedBooking =
-                serviceBookingService.updateBooking(
-                        id, request, email, role
-                );
+        ServiceBooking booking = serviceBookingService.updateBooking(
+                id, request, email, role
+        );
 
-        return ResponseEntity.ok(updatedBooking);
+        return ResponseEntity.ok(ServiceBookingResponse.from(booking));
     }
 
     // CUSTOMER / ADMIN / SERVICE ADVISOR: CANCEL BOOKING
     @PutMapping("/{id}/cancel")
     @PreAuthorize("hasAnyRole('CUSTOMER', 'ADMIN', 'SERVICE_ADVISOR')")
-    public ResponseEntity<ServiceBooking> cancelBooking(
+    @Transactional
+    public ResponseEntity<ServiceBookingResponse> cancelBooking(
             @PathVariable Long id,
             Authentication authentication) {
 
@@ -192,11 +199,9 @@ public class ServiceBookingController {
                 .getAuthority()
                 .replace("ROLE_", "");
 
-        ServiceBooking cancelledBooking =
-                serviceBookingService.cancelBooking(
-                        id, email, role
-                );
+        ServiceBooking booking =
+                serviceBookingService.cancelBooking(id, email, role);
 
-        return ResponseEntity.ok(cancelledBooking);
+        return ResponseEntity.ok(ServiceBookingResponse.from(booking));
     }
 }

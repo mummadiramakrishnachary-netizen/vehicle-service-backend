@@ -1,3 +1,4 @@
+
 # Maven
 target/
 .mvn/wrapper/maven-wrapper.jar
@@ -16,6 +17,12 @@ application-local.yaml
 application-secret.properties
 application-secret.yml
 application-secret.yaml
+
+# Local database certificates and truststores
+*.p12
+*.jks
+*.truststore
+*.trustStore
 
 # IDEs
 .apt_generated/
@@ -46,6 +53,7 @@ build/
 # Logs
 *.log
 logs/
+startup-log.txt
 
 # Operating system files
 .DS_Store
