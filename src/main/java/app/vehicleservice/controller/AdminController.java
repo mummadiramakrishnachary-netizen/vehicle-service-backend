@@ -1,3 +1,4 @@
+
 package app.vehicleservice.controller;
 
 import app.vehicleservice.dto.MechanicCreateRequest;
@@ -14,6 +15,8 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -38,6 +41,15 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public String dashboard() {
         return "Admin dashboard access granted";
+    }
+
+    // Admin: Get all mechanics
+    @GetMapping("/mechanics")
+    @PreAuthorize("hasRole('ADMIN')")
+    public ResponseEntity<List<Mechanic>> getAllMechanics() {
+        return ResponseEntity.ok(
+                mechanicService.getAllMechanics()
+        );
     }
 
     // Admin: Create mechanic login account and mechanic profile
